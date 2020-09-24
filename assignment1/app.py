@@ -1,4 +1,5 @@
 from flask import Flask, request, abort, send_file, make_response
+import flask_monitoringdashboard as dashboard
 from sqlitedict import SqliteDict
 import hashlib 
 import qrcode
@@ -6,6 +7,7 @@ from io import BytesIO
 bookmarksDB = SqliteDict('./my_db.sqlite')
 
 app = Flask(__name__)
+dashboard.bind(app)
 
 @app.route('/api/bookmarks', methods = ['POST'])
 def createBookmark():
