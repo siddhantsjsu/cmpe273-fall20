@@ -123,3 +123,12 @@ _Response Header_
 304 Not Modified
 ETag: version_num
 ```
+
+### Steps to run
+
+1. Clone Repo
+2. Install dependencies using pipfile - `pipenv install`
+3. Start Virtual Env shell - `pipenv shell`
+3. Add FLASK_APP environment variable - `export FLASK_APP=app.py`
+4. Start Flask App - `flask run`
+
