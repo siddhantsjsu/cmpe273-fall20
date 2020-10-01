@@ -28,3 +28,9 @@ The worker component listens (PULL) the numbers from the generator in a round ro
 The dashboard component receives the result from the workers and displays the result to the console.
 
 
+## Solution
+
+The solution to this problem is based on the Parallel Pipeline pattern explained in the ZeroMQ Guide - 
+
+![Parallel Pipeline](assets/parallelPipeline.png)
+
