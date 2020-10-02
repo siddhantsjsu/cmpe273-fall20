@@ -14,7 +14,7 @@ receiver.connect("tcp://localhost:5557")
 sender = context.socket(zmq.PUSH)
 sender.connect("tcp://localhost:5558")
 
-print("Worker 2 Ready")
+print("Worker Ready")
 # Process tasks forever
 while True:
     s = receiver.recv()
