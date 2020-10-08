@@ -34,3 +34,11 @@ The solution to this problem is based on the Parallel Pipeline pattern explained
 
 ![Parallel Pipeline](assets/parallelPipeline.png)
 
+
+### Steps to run
+1. run `pipenv install` to install dependencies
+2. Open 5 terminal windows
+3. Run following command in 1 window - `pipenv run python src/master.py` to run Master
+4. Run following command 3 window - `pipenv run python src/worker.py >> output.txt` to run Workers
+5. Run following command in 1 window - `pipenv run python src/dashboard.py >> output.txt` to run Dashboard
+
