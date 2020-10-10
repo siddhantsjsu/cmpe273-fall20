@@ -107,5 +107,12 @@ Error
 * ::print and _data_
 
 > Print the _data_ to a console.
+
+### Steps to run
+1. Run `pipenv install` to install dependencies
+2. Run `pipenv run python httpflow.py <input.yaml>` to run schedule flow according to input YAML file. E.g. - `pipenv run python httpflow.py test2.yaml`
+
+### Assumptions
+Fixed indentation errors in given test files according to the [YAML Syntax guideline](https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html)
   
 
