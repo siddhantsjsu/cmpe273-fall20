@@ -1,4 +1,4 @@
-import sys, yaml, requests, schedule
+import sys, yaml, requests, schedule, time
 
 class HttpFlow:
 
@@ -49,6 +49,7 @@ class HttpFlow:
         print(schedule.jobs)
         while True:
             schedule.run_pending()
+            time.sleep(1)
 
     def parseYAML(self): # Parse the YAML contents and store in dictionary
         stream = open(sys.argv[1])
