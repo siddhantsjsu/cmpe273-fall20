@@ -9,7 +9,7 @@ Steps:
             left: http.response.code
             right: 200
         then:
-          action: ::invoke:step:2
+          action: ::print
           data: http.response.headers.content-type
         else:
           action: ::print
