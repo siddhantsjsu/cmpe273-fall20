@@ -25,11 +25,9 @@ def receive_result():
     
     result_1 = receiver.recv_json()
     result_2 = receiver.recv_json()
-    
-    # FIXME 
+    result_add = {}
+    result_add['x_votes'] = result_1.get('x',0) + result_2.get('x',0)
+    result_add['y_votes'] = result_1.get('y',0) + result_2.get('y',0)
+
     # Calculate total votes from result 1 and 2.
-    return {
-        'x_votes': 15000,
-        'y_votes': 20000 
-    }
-     
+    return result_add

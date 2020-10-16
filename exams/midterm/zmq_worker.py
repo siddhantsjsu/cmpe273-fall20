@@ -13,22 +13,20 @@ def voting_station_worker():
     region = msg['region']
     print(f'region={region} to count votes')
     result = {}
+    filename = "votes/"
     # scan file and count votes
-    if region == 'east':
-        # FIXME
-        # Count votes from east.cvs
-        print(f'Counting {region}...')
-        # FIXME
-        result = {
-            'region': region,
-            'x': 0,
-            'y': 0
-        }
+    print(f'Counting {region}...')
+    filename = filename + region + ".csv"
+    file = open(filename,'r')
+    lines = file.readlines()
+    if len(lines) > 0:
+        result['region'] = region
+        for line in lines:
+            if line.startswith('x'):
+                result['x'] = result.get('x',0) + 1
+            elif line.startswith('y'):
+                result['y'] = result.get('y',0) + 1
     else:
-        # FIXME
-        # Count votes from west.cvs
-        print(f'Counting {region}...')
-        # FIXME
         result = {
             'region': region,
             'x': 0,
