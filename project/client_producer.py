@@ -2,6 +2,8 @@ import zmq
 import time
 import sys
 from itertools import cycle
+import consistent_hashing as ch
+import hrw
 
 def create_clients(servers):
     producers = {}
@@ -15,11 +17,11 @@ def create_clients(servers):
     
 
 def generate_data_round_robin(servers):
-    print("Starting...")
+    print("Starting Round Robin...")
     producers = create_clients(servers)
     pool = cycle(producers.values())
     for num in range(10):
-        data = { 'key': f'key-{num}', 'value': f'value-{num}' }
+        data = { 'key': f'rr_key-{num}', 'value': f'rr_value-{num}' }
         print(f"Sending data:{data}")
         next(pool).send_json(data)
         time.sleep(1)
@@ -27,13 +29,27 @@ def generate_data_round_robin(servers):
 
 
 def generate_data_consistent_hashing(servers):
-    print("Starting...")
-    ## TODO
+    print("Starting Consistent Hashing...")
+    consistentHashRing = ch.ConsistentHashRing(servers, 100)
+    producers = create_clients(servers)
+    for num in range(100):
+        data = { 'key': f'key-{num}', 'value': f'value-{num}' }
+        print(f"Sending data:{data}")
+        server = consistentHashRing.assignServer(f'key-{num}')
+        producers[server].send_json(data)
+        # time.sleep(1)
     print("Done")
     
 def generate_data_hrw_hashing(servers):
-    print("Starting...")
-    ## TODO
+    print("Starting HRW Hashing...")
+    rendezvousHashRing = hrw.RendezvousHashRing(servers)
+    producers = create_clients(servers)
+    for num in range(100):
+        data = { 'key': f'key-{num}', 'value': f'value-{num}' }
+        print(f"Sending data:{data}")
+        server = rendezvousHashRing.assignServer(f'key-{num}')
+        producers[server].send_json(data)
+        # time.sleep(1)
     print("Done")
     
     
