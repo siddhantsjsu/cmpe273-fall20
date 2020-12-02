@@ -8,6 +8,8 @@ verify_ssl = true
 [packages]
 pyzmq = "==19.0.2"
 mmh3 = "*"
+requests = "*"
+python-consul = "*"
 
 [requires]
 python_version = "3.8"
