@@ -124,14 +124,6 @@ def demoCH(servers):
     print("Press Enter to Add node:")
     _ = input()
     newServerAddress = "tcp://127.0.0.1:2004"
-    print("Registering Server to Consul with Address=127.0.0.1 and Port=2004")
-    consulClient.agent.service.register("Server-4", service_id="2004", address="127.0.0.1", port=2004)
-    context = zmq.Context()
-    producer_conn = context.socket(zmq.REQ)
-    producer_conn.connect(newServerAddress)
-    consistentHashRing._producers[newServerAddress] = producer_conn
-    servers.append(newServerAddress)
-    time.sleep(10)
     add_node_for_consistent_hashing(consistentHashRing, newServerAddress)
     
     print("Press Enter to Display Data on Servers ")
@@ -141,18 +133,37 @@ def demoCH(servers):
 
     print("Press Enter to Delete node:")
     _ = input()
-    consulClient.agent.service.deregister(service_id="2004")
-    
+    delServerAddress = "tcp://127.0.0.1:2004"
+    del_node_for_consistent_hashing(consistentHashRing, delServerAddress)
+
+    print("Press Enter to Display Data on Servers ")
+    _ = input()
+    for server in servers:
+        getAllDataFromServer(server,consistentHashRing._producers)
+
     print("Press Enter to end Consistent Hashing Demo: ")
     _ = input()
     print("Deleting all data on servers....")
     for server in servers:
         deleteAllDataOnServer(server,consistentHashRing._producers)
 
-def add_node_for_consistent_hashing(consistentHashRing,additionalServers):
-    consistentHashRing.addNode(additionalServers)
-    
-    
+def add_node_for_consistent_hashing(consistentHashRing,newServerAddress):
+    print("Registering Server to Consul with Address=127.0.0.1 and Port=2004")
+    consulClient.agent.service.register("Server-4", service_id="2004", address="127.0.0.1", port=2004)
+    context = zmq.Context()
+    producer_conn = context.socket(zmq.REQ)
+    producer_conn.connect(newServerAddress)
+    consistentHashRing._producers[newServerAddress] = producer_conn
+    servers.append(newServerAddress)
+    time.sleep(10)
+    consistentHashRing.addNode(newServerAddress)
+
+def del_node_for_consistent_hashing(consistentHashRing, server):
+    proto, addr, port = server.split(":")
+    consistentHashRing.removeNode(server) 
+    consulClient.agent.service.deregister(service_id=port)
+    servers.pop()
+
 if __name__ == "__main__":
     servers = []
     num_server = 1

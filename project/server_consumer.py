@@ -57,6 +57,7 @@ def consulListener(numInitialServers, consulClient, serverSet):
                 currentServerSet.add(server)
         elif numCurrentServers > len(consulServers):
             print("****Servers Removed from Consul****")
+            numCurrentServers = len(consulServers)
             pass
         time.sleep(10)
 

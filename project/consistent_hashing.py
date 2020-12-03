@@ -50,16 +50,16 @@ class ConsistentHashRing:
         if index > 0 and self._keys[index] == key:
             raise Exception("Collision occured")
         
-        data = self.fetchDataOfNextServer(server)
+        nextServer = self.assignServer(server)
+        data = self.fetchDataOfServer(nextServer)
 
         self._servers.insert(index,server)
         self._keys.insert(index,key)
         
         self.rebalanceDataForAdd(data)
 
-    def fetchDataOfNextServer(self, server):
+    def fetchDataOfServer(self, nextServer):
         ## Rebalancing Logic
-        nextServer = self.assignServer(server)
         getMsg = { 'op': 'GET_ALL' }
         producer = self._producers.get(nextServer)
         producer.send_json(getMsg)
@@ -78,5 +78,36 @@ class ConsistentHashRing:
             print(f"Sending data:{data} to {server}")
             self._producers[server].send_json(data)
             res =  self._producers[server].recv_json()
+            print(res)
+        print("Rebalancing complete")
+
+    def removeNode(self, server):
+
+        if len(self._keys) == 0:
+            raise Exception("Hash Space is Empty.")
+        
+        key = self.generateHash(server)
+        index = bisect.bisect_left(self._keys, key)
+
+        if index >= len(self._keys) or self._keys[index] != key:
+            raise Exception("Node does not exist")
+        
+        data = self.fetchDataOfServer(server)
+        nextServer = self.assignServer(server)
+        self.rebalanceDataForDel(data,nextServer)
+
+        self._servers.pop(index)
+        self._keys.pop(index)
+        self._producers.pop(server)
+
+        
+    def rebalanceDataForDel(self, data, nextServer):
+        for obj in data:
+            key = list(obj.keys())[0]
+            value = list(obj.values())[0]
+            data = { 'op': 'PUT', 'key': key, 'value': value }
+            print(f"Sending data:{data} to {nextServer}")
+            self._producers[nextServer].send_json(data)
+            res =  self._producers[nextServer].recv_json()
             print(res)
         print("Rebalancing complete")
