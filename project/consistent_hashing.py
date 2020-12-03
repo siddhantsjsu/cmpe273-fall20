@@ -5,7 +5,7 @@ class ConsistentHashRing:
     """
     Class Design based on following technical article - https://levelup.gitconnected.com/consistent-hashing-27636286a8a9
     """
-    
+
     def __init__(self, servers:list, total_slots=128):
         """
         Initiate the hashring with a list of server nodes
@@ -37,4 +37,18 @@ class ConsistentHashRing:
         index = bisect.bisect_right(self._keys, key) % len(self._keys)
         return self._servers[index]
 
-    
+    def addNode(self, server):
+
+        if len(self._keys) == self._total_slots:
+            raise Exception("Hash Space is Full.")
+        
+        key = self.generateHash(server)
+        index = bisect.bisect(self._keys, key)
+
+        if index > 0 and self._keys[index] == key:
+            raise Exception("Collision occured")
+        
+        self._servers.insert(index,server)
+        self._keys.insert(index,key)
+
+        return key

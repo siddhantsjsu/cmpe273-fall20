@@ -6,10 +6,10 @@ import time
 import base64
 import consul
 
-def server(consulClient,port,id):
-    print(f"Server ID:{id} at Port:{port} Initialized")
-    name = "Server-{}".format(id)
-    consulClient.agent.service.register(name, service_id=str(id), address= "127.0.0.1", port=int(port))
+def server(consulClient,port):
+    print(f"Server ID:{port} at Port:{port} Initialized")
+    name = "Server-{}".format(port)
+    consulClient.agent.service.register(name, service_id=port, address= "127.0.0.1", port=int(port))
     context = zmq.Context()
     consumer = context.socket(zmq.REP)
     consumer.bind(f"tcp://127.0.0.1:{port}")
@@ -32,6 +32,10 @@ def server(consulClient,port,id):
             print(f"Server_port={port},op={op}")
             value = { 'collections': [{k:v} for k,v in storage.items()] }
             consumer.send_json(value)
+        elif op == 'DELETE_ALL':
+            print(f"Server_port={port},op={op}")
+            storage = {}
+            consumer.send_json({'op': 'DELETE_ALL', 'message': 'Success'})
         # print(f"Storage Snapshot for Port:{port} Count:{len(storage.keys())}") #Printing count of keys in dictionary to validate algorithm
 
 def consulListener(consulClient):
@@ -55,5 +59,5 @@ if __name__ == "__main__":
         for eachServer in range(numServers):
             port = "200{}".format(eachServer)
             print(f"Starting a server at:{port}...")
-            Process(target=server, args=(consulClient,port,eachServer,)).start()
+            Process(target=server, args=(consulClient,port,)).start()
     
