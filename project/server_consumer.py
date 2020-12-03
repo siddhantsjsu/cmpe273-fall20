@@ -9,18 +9,30 @@ import consul
 def server(consulClient,port,id):
     print(f"Server ID:{id} at Port:{port} Initialized")
     name = "Server-{}".format(id)
-    consulClient.agent.service.register(name, service_id=str(id), port=port)
-    # context = zmq.Context()
-    # consumer = context.socket(zmq.PULL)
-    # consumer.connect(f"tcp://127.0.0.1:{port}")
-    # storage = {}
-    # count = 0
-    # while True:
-    #     raw = consumer.recv_json()
-    #     key, value = raw['key'], raw['value']
-    #     print(f"Server_port={port}:key={key},value={value}")
-    #     storage[key] = value
-    #     print(f"Storage Snapshot for Port:{port} Count:{len(storage.keys())}") #Printing count of keys in dictionary to validate algorithm
+    consulClient.agent.service.register(name, service_id=str(id), address= "127.0.0.1", port=int(port))
+    context = zmq.Context()
+    consumer = context.socket(zmq.REP)
+    consumer.bind(f"tcp://127.0.0.1:{port}")
+    storage = {}
+    count = 0
+    while True:
+        message = consumer.recv_json()
+        op = message['op']
+        if op == 'PUT':
+            key, value = message['key'], message['value']
+            print(f"Server_port={port},op={op},key={key},value={value}")
+            storage[key] = value
+            consumer.send_json({'op': 'PUT', 'message': 'Success'})
+        elif op == 'GET_ONE':
+            key =  message['key']
+            print(f"Server_port={port},op={op},key={key}")
+            value = storage.get(key)
+            consumer.send_json({'key': key, 'value': value})
+        elif op == 'GET_ALL':
+            print(f"Server_port={port},op={op}")
+            value = { 'collections': [{k:v} for k,v in storage.items()] }
+            consumer.send_json(value)
+        # print(f"Storage Snapshot for Port:{port} Count:{len(storage.keys())}") #Printing count of keys in dictionary to validate algorithm
 
 def consulListener(consulClient):
     time.sleep(10)
@@ -30,7 +42,7 @@ def consulListener(consulClient):
         numServers = int(data.get("Value"))
         print("Cluster Size: ", numServers)
         print("Services Registered on Consul: ", len(consulClient.agent.services().keys()))
-        time.sleep(10)
+        time.sleep(30)
 
 if __name__ == "__main__":
     consulClient = consul.Consul()
@@ -39,7 +51,7 @@ if __name__ == "__main__":
         print("Cluster Size not found")
     else:
         numServers = int(data.get("Value"))
-        Process(target=consulListener, args=(consulClient,)).start()
+        # Process(target=consulListener, args=(consulClient,)).start()
         for eachServer in range(numServers):
             port = "200{}".format(eachServer)
             print(f"Starting a server at:{port}...")
