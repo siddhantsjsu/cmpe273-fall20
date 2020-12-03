@@ -5,6 +5,7 @@ from itertools import cycle
 import consistent_hashing as ch
 import hrw
 import consul
+from  multiprocessing import Process
 
 def create_clients(servers):
     producers = {}
@@ -36,10 +37,12 @@ def demoRoundRobin(servers):
     print("Starting Round Robin...")
     producers = create_clients(servers)
     generate_data_round_robin(servers, producers)
+   
     print("Press Enter to Display Data on Servers ")
     _ = input()
     for server in servers:
         getAllDataFromServer(server,producers)
+   
     print("Press Enter to end Round Robin Demo: ")
     _ = input()
     print("Deleting all data on servers....")
@@ -49,15 +52,16 @@ def demoRoundRobin(servers):
 
 def getAllDataFromServer(server, producers):
     producer = producers.get(server)
-    data = { 'op': 'GET_ALL' }
-    producer.send_json(data)
-    print(f"Data on Server - {server}")
-    print(producer.recv_json())
+    msg = { 'op': 'GET_ALL' }
+    producer.send_json(msg)
+    data = producer.recv_json()
+    print(f"Data on Server - {server} - Size: {len(data['collections'])}")
+    print(data)
 
 def deleteAllDataOnServer(server,producers):
     producer = producers.get(server)
-    data = { 'op': 'DELETE_ALL' }
-    producer.send_json(data)
+    msg = { 'op': 'DELETE_ALL' }
+    producer.send_json(msg)
     producer.recv_json()
 
 def generate_data_hrw_hashing(servers, producers):
@@ -79,20 +83,21 @@ def demoHRW(servers):
     print("Starting HRW...")
     producers = create_clients(servers)
     generate_data_hrw_hashing(servers, producers)
+    
     print("Press Enter to Display Data on Servers ")
     _ = input()
     for server in servers:
         getAllDataFromServer(server,producers)
+   
     print("Press Enter to end HRW Demo: ")
     _ = input()
     print("Deleting all data on servers....")
     for server in servers:
         deleteAllDataOnServer(server,producers)
 
-def generate_data_consistent_hashing(servers):
+def generate_data_consistent_hashing(servers, producers):
     print("Starting Consistent Hashing...")
-    consistentHashRing = ch.ConsistentHashRing(servers, 100)
-    producers = create_clients(servers)
+    consistentHashRing = ch.ConsistentHashRing(servers, producers, 100)
     for num in range(100):
         data = { 'op': 'PUT', 'key': f'key-{num}', 'value': f'value-{num}' }
         print(f"Sending data:{data}")
@@ -102,38 +107,50 @@ def generate_data_consistent_hashing(servers):
         print(res)
         # time.sleep(1)
     print("Done")
+    return consistentHashRing
 
-def add_node_for_consistent_hashing(additionalServers):
-    print(additionalServers)
-    for server in additionalServers.values():
-        pass
+def demoCH(servers):
+    print("Press Enter to start Consistent Hashing Demo: ")
+    _ = input()
+    print("Starting Consistent Hashing demo...")
+    producers = create_clients(servers)
+    consistentHashRing = generate_data_consistent_hashing(servers, producers)
     
-def consulListener(consulClient, serverAddressMap):
+    print("Press Enter to Display Data on Servers ")
+    _ = input()
+    for server in servers:
+        getAllDataFromServer(server,consistentHashRing._producers)
+    
+    print("Press Enter to Add node:")
+    _ = input()
+    newServerAddress = "tcp://127.0.0.1:2004"
+    print("Registering Server to Consul with Address=127.0.0.1 and Port=2004")
+    consulClient.agent.service.register("Server-4", service_id="2004", address="127.0.0.1", port=2004)
+    context = zmq.Context()
+    producer_conn = context.socket(zmq.REQ)
+    producer_conn.connect(newServerAddress)
+    consistentHashRing._producers[newServerAddress] = producer_conn
+    servers.append(newServerAddress)
     time.sleep(10)
-    print("Listening for cluster updates from Consul...")
-    numInitialServers = len(serverAddressMap.keys())
-    while True:
-        # index, data = consulClient.kv.get('python/servers/count')
-        # consulNumServers = int(data.get("Value"))
-        # # print("Cluster Size: ", consulNumServers)
-        consulServers = consulClient.agent.services().values()
-        print("Servers Registered on Consul: ", len(consulServers))
-        if numInitialServers < len(consulServers):
-            print("****New Servers Discovered on Consul****")
-            additionalServers = getAdditionalServers(serverAddressMap, consulServers)
-            add_node_for_consistent_hashing(additionalServers)
-        elif numInitialServers > len(consulServers):
-            print("****Servers Removed from Consul****")
-            pass
-        time.sleep(30)
+    add_node_for_consistent_hashing(consistentHashRing, newServerAddress)
+    
+    print("Press Enter to Display Data on Servers ")
+    _ = input()
+    for server in servers:
+        getAllDataFromServer(server,consistentHashRing._producers)
 
-def getAdditionalServers(oldServerAddressMap, newConsulServers):
-    newServerAddressMap = {}
-    for regServer in newConsulServers:
-        address = "tcp://" + regServer["Address"] + ":" + str(regServer["Port"])
-        newServerAddressMap[regServer["ID"]] = address
-    additionalServers = { x:newServerAddressMap[x] for x in newServerAddressMap if x not in oldServerAddressMap }
-    return additionalServers
+    print("Press Enter to Delete node:")
+    _ = input()
+    consulClient.agent.service.deregister(service_id="2004")
+    
+    print("Press Enter to end Consistent Hashing Demo: ")
+    _ = input()
+    print("Deleting all data on servers....")
+    for server in servers:
+        deleteAllDataOnServer(server,consistentHashRing._producers)
+
+def add_node_for_consistent_hashing(consistentHashRing,additionalServers):
+    consistentHashRing.addNode(additionalServers)
     
     
 if __name__ == "__main__":
@@ -141,15 +158,12 @@ if __name__ == "__main__":
     num_server = 1
     consulClient = consul.Consul()
     registeredServers = consulClient.agent.services().values()
-    serverAddressMap = {}
     for regServer in registeredServers:
         address = "tcp://" + regServer["Address"] + ":" + str(regServer["Port"])
         servers.append(address)
-        serverAddressMap[regServer["ID"]] = address
-    # Process(target=consulListener, args=(consulClient,serverAddressMap,)).start()
     
     print("Servers:", servers)
-    demoRoundRobin(servers)
-    demoHRW(servers)
-    # generate_data_hrw_hashing(servers)
+    # demoRoundRobin(servers)
+    # demoHRW(servers)
+    demoCH(servers)
     

@@ -1,18 +1,20 @@
 import hashlib
 import bisect
+import zmq
 
 class ConsistentHashRing:
     """
     Class Design based on following technical article - https://levelup.gitconnected.com/consistent-hashing-27636286a8a9
     """
 
-    def __init__(self, servers:list, total_slots=128):
+    def __init__(self, servers:list, producers:dict, total_slots=128):
         """
         Initiate the hashring with a list of server nodes
         """
         self._servers = []
         self._keys = []
         self._total_slots = total_slots
+        self._producers = producers
         for server in servers:
             key = self.generateHash(server)
             index = bisect.bisect(self._keys, key)
@@ -48,7 +50,33 @@ class ConsistentHashRing:
         if index > 0 and self._keys[index] == key:
             raise Exception("Collision occured")
         
+        data = self.fetchDataOfNextServer(server)
+
         self._servers.insert(index,server)
         self._keys.insert(index,key)
+        
+        self.rebalanceDataForAdd(data)
 
-        return key
+    def fetchDataOfNextServer(self, server):
+        ## Rebalancing Logic
+        nextServer = self.assignServer(server)
+        getMsg = { 'op': 'GET_ALL' }
+        producer = self._producers.get(nextServer)
+        producer.send_json(getMsg)
+        data = producer.recv_json()
+        deleteMsg = { 'op': 'DELETE_ALL' }
+        producer.send_json(deleteMsg)
+        producer.recv_json()
+        return data['collections']
+
+    def rebalanceDataForAdd(self, data):
+        for obj in data:
+            key = list(obj.keys())[0]
+            value = list(obj.values())[0]
+            data = { 'op': 'PUT', 'key': key, 'value': value }
+            server = self.assignServer(key)
+            print(f"Sending data:{data} to {server}")
+            self._producers[server].send_json(data)
+            res =  self._producers[server].recv_json()
+            print(res)
+        print("Rebalancing complete")

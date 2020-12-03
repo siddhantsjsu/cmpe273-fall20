@@ -6,13 +6,14 @@ import time
 import base64
 import consul
 
-def server(consulClient,port):
+def bootServer(consulClient,address,port,isRegistered):
     print(f"Server ID:{port} at Port:{port} Initialized")
     name = "Server-{}".format(port)
-    consulClient.agent.service.register(name, service_id=port, address= "127.0.0.1", port=int(port))
+    if not isRegistered:
+        consulClient.agent.service.register(name, service_id=port, address= "127.0.0.1", port=int(port))
     context = zmq.Context()
     consumer = context.socket(zmq.REP)
-    consumer.bind(f"tcp://127.0.0.1:{port}")
+    consumer.bind(f"tcp://{address}:{port}")
     storage = {}
     count = 0
     while True:
@@ -36,17 +37,36 @@ def server(consulClient,port):
             print(f"Server_port={port},op={op}")
             storage = {}
             consumer.send_json({'op': 'DELETE_ALL', 'message': 'Success'})
-        # print(f"Storage Snapshot for Port:{port} Count:{len(storage.keys())}") #Printing count of keys in dictionary to validate algorithm
 
-def consulListener(consulClient):
+def consulListener(numInitialServers, consulClient, serverSet):
     time.sleep(10)
     print("Listening for cluster updates from Consul...")
+    numCurrentServers = numInitialServers
+    currentServerSet = serverSet
     while True:
-        index, data = consulClient.kv.get('python/servers/count')
-        numServers = int(data.get("Value"))
-        print("Cluster Size: ", numServers)
-        print("Services Registered on Consul: ", len(consulClient.agent.services().keys()))
-        time.sleep(30)
+        consulServers = consulClient.agent.services().values()
+        print("Servers Registered on Consul: ", len(consulServers))
+        if numCurrentServers < len(consulServers):
+            print("****New Servers Discovered on Consul****")
+            additionalServers = getAdditionalServers(currentServerSet, consulServers)
+            for server in additionalServers:
+                print(f"Booting Server - {server}")
+                address, port = server.split(":")
+                Process(target=bootServer, args=(consulClient,address,port,True)).start()
+                numCurrentServers += 1
+                currentServerSet.add(server)
+        elif numCurrentServers > len(consulServers):
+            print("****Servers Removed from Consul****")
+            pass
+        time.sleep(10)
+
+def getAdditionalServers(oldServerSet, newConsulServers):
+    newServerSet = set()
+    for regServer in newConsulServers:
+        address = regServer["Address"] + ":" + str(regServer["Port"])
+        newServerSet.add(address)
+    additionalServers = newServerSet.difference(oldServerSet)
+    return additionalServers
 
 if __name__ == "__main__":
     consulClient = consul.Consul()
@@ -54,10 +74,13 @@ if __name__ == "__main__":
     if(len(data) < 1):
         print("Cluster Size not found")
     else:
+        initialServerSet = set()
         numServers = int(data.get("Value"))
-        # Process(target=consulListener, args=(consulClient,)).start()
         for eachServer in range(numServers):
+            address = "127.0.0.1"
             port = "200{}".format(eachServer)
             print(f"Starting a server at:{port}...")
-            Process(target=server, args=(consulClient,port,)).start()
+            initialServerSet.add(f"{address}:{port}")
+            Process(target=bootServer, args=(consulClient,address,port,False,)).start()
+        Process(target=consulListener, args=(numServers,consulClient,initialServerSet)).start()
     
