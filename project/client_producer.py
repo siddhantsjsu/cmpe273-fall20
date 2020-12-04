@@ -31,7 +31,7 @@ def generate_data_round_robin(servers, producers):
         # time.sleep(1)
     print("Done")
 
-def demoRoundRobin(servers):
+def testRoundRobin(servers):
     print("Press Enter to start Round Robin Demo: ")
     _ = input()
     print("Starting Round Robin...")
@@ -78,7 +78,7 @@ def generate_data_hrw_hashing(servers, producers):
     print("Done")
     return rendezvousHashRing
 
-def demoHRW(servers):
+def testHRW(servers):
     print("Press Enter to start HRW Demo: ")
     _ = input()
     print("Starting HRW...")
@@ -119,7 +119,7 @@ def generate_data_consistent_hashing(servers, producers):
     print("Done")
     return consistentHashRing
 
-def demoCH(servers):
+def testConsistentHashing(servers):
     print("Press Enter to start Consistent Hashing Demo: ")
     _ = input()
     print("Starting Consistent Hashing demo...")
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         servers.append(address)
     
     print("Servers:", servers)
-    # demoRoundRobin(servers)
-    # demoCH(servers)
-    demoHRW(servers)
+    testRoundRobin(servers)
+    testConsistentHashing(servers)
+    testHRW(servers)
     consulCleanUp(servers)

@@ -5,27 +5,35 @@
 [ Node-2 ]
 [ Node-3 ]
 
-### Cluster Adjustment
+## System Requirements
+1. Python 3
+2. ZeroMQ
+3. Consul
+4. python-consul
+5. mmh3
 
-- Add Node-4
+_How to launch consul and set initial cluster size_
 
-
-- Remove Node-0 
-
+```
+consul agent -dev -node local
+consul kv put python/servers/count 4
+```
 
 _How to launch server cluster_
 
 ```
-pipenv run python server_consumer.py 4
+pipenv run python server_consumer.py
 ```
 
 _How to run client_
 
 ```
-pipenv run python client_producer.py 4
+pipenv run python client_producer.py
 ```
 
-## Phase 1
+## Requirements
+
+### Phase 1
 
 The scope of phase 1 is to shard (PUT) the data into a list of servers. No retrieval is required. You will be 
 implementing the following two hashing algorithms on the client side.
@@ -33,11 +41,11 @@ implementing the following two hashing algorithms on the client side.
 * Consistent hashing
 * HRW hashing
 
-## Phase 2
+### Phase 2
 
 In the phase 2, you will be adding retrieval GET by Id/key and GET all operations in both client and server sides. In addtion, the PUT method will get modified to work with new interface.
 
-### PUT
+#### PUT
 
 _JSON Request Payload_
 
@@ -50,7 +58,7 @@ _JSON Request Payload_
 ```
 
 
-### GET by key
+#### GET by key
 
 _JSON Request Payload_
 
@@ -70,7 +78,7 @@ _JSON Response Payload_
 }
 ```
 
-### GET All
+#### GET All
 
 _JSON Request Payload_
 
@@ -97,7 +105,7 @@ _JSON Response Payload_
 }
 ```
 
-### Cluster Membership
+#### Cluster Membership
 
 In order to dynamically control the node membership, your system will integrate with [Consul](https://www.consul.io/).
 
@@ -115,7 +123,7 @@ removed from the membership.
 
 Similarly on the client side, you will first lookup the membership from Consul and then the data will be sharded across different nodes.
 
-### Cluster Adjustment
+#### Cluster Adjustment
 
 Adding and removing nodes will be supported in the consistent hashing mode only and node rebalancing--moving data from one node to another--will 
 be handled on the client side by sending the _remove_ and _add_ signals to Consul. 
