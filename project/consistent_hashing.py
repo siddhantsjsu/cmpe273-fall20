@@ -20,6 +20,7 @@ class ConsistentHashRing:
             index = bisect.bisect(self._keys, key)
             self._servers.insert(index, server)
             self._keys.insert(index, key)
+        print("Hash Ring: ",self._servers)
 
 
     def generateHash(self, key:str) -> int:

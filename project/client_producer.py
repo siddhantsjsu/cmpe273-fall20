@@ -28,7 +28,7 @@ def generate_data_round_robin(servers, producers):
         current.send_json(data)
         res = current.recv_json()
         print(res)
-        time.sleep(1)
+        # time.sleep(1)
     print("Done")
 
 def demoRoundRobin(servers):
@@ -133,7 +133,7 @@ def demoCH(servers):
 
     print("Press Enter to Delete node:")
     _ = input()
-    delServerAddress = "tcp://127.0.0.1:2004"
+    delServerAddress = "tcp://127.0.0.1:2000"
     del_node_for_consistent_hashing(consistentHashRing, delServerAddress)
 
     print("Press Enter to Display Data on Servers ")
@@ -149,7 +149,7 @@ def demoCH(servers):
 
 def add_node_for_consistent_hashing(consistentHashRing,newServerAddress):
     print("Registering Server to Consul with Address=127.0.0.1 and Port=2004")
-    consulClient.agent.service.register("Server-4", service_id="2004", address="127.0.0.1", port=2004)
+    consulClient.agent.service.register("Server-2004", service_id="2004", address="127.0.0.1", port=2004)
     context = zmq.Context()
     producer_conn = context.socket(zmq.REQ)
     producer_conn.connect(newServerAddress)
@@ -159,10 +159,17 @@ def add_node_for_consistent_hashing(consistentHashRing,newServerAddress):
     consistentHashRing.addNode(newServerAddress)
 
 def del_node_for_consistent_hashing(consistentHashRing, server):
+    print("Deleting Server with Address=127.0.0.1 and Port=2000")
     proto, addr, port = server.split(":")
     consistentHashRing.removeNode(server) 
     consulClient.agent.service.deregister(service_id=port)
-    servers.pop()
+    servers.remove(server)
+
+def consulCleanUp(servers):
+    print("Deregistering servers...")
+    for server in servers:
+        proto, addr, port = server.split(":")
+        consulClient.agent.service.deregister(service_id=port)
 
 if __name__ == "__main__":
     servers = []
@@ -174,7 +181,7 @@ if __name__ == "__main__":
         servers.append(address)
     
     print("Servers:", servers)
-    # demoRoundRobin(servers)
-    # demoHRW(servers)
+    demoRoundRobin(servers)
     demoCH(servers)
-    
+    demoHRW(servers)
+    consulCleanUp(servers)
