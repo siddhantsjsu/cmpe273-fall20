@@ -12,6 +12,7 @@
 4. python-consul
 5. mmh3
 
+## Steps to run
 _How to launch consul and set initial cluster size_
 
 ```
@@ -31,7 +32,7 @@ _How to run client_
 pipenv run python client_producer.py
 ```
 
-## Requirements
+## Functional Requirements
 
 ### Phase 1
 
