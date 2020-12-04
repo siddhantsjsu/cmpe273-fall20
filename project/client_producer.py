@@ -76,18 +76,28 @@ def generate_data_hrw_hashing(servers, producers):
         print(res)
         # time.sleep(1)
     print("Done")
+    return rendezvousHashRing
 
 def demoHRW(servers):
     print("Press Enter to start HRW Demo: ")
     _ = input()
     print("Starting HRW...")
     producers = create_clients(servers)
-    generate_data_hrw_hashing(servers, producers)
+    rendezvousHashRing = generate_data_hrw_hashing(servers, producers)
     
     print("Press Enter to Display Data on Servers ")
     _ = input()
     for server in servers:
         getAllDataFromServer(server,producers)
+
+    print("Enter the Key to get by key:")
+    key = input()
+    server = rendezvousHashRing.assignServer(key)
+    data = { 'op': 'GET_ONE', 'key': key }
+    print(f"Sending data:{data}")
+    producers[server].send_json(data)
+    res =  producers[server].recv_json()
+    print(res)
    
     print("Press Enter to end HRW Demo: ")
     _ = input()
@@ -181,7 +191,7 @@ if __name__ == "__main__":
         servers.append(address)
     
     print("Servers:", servers)
-    demoRoundRobin(servers)
-    demoCH(servers)
+    # demoRoundRobin(servers)
+    # demoCH(servers)
     demoHRW(servers)
     consulCleanUp(servers)
