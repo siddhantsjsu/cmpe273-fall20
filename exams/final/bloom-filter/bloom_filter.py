@@ -35,18 +35,21 @@ class BloomFilter(object):
             # create digest for given item.
             # i work as seed to mmh3.hash() function
             # With different seed, digest created is different
-            # TODO
+            digest = mmh3.hash(item, i) % self.size
+            digests.append(digest)
             
             # set the bit True in bit_array
-            # TODO
-            pass
+            self.bit_array[digest] = True
 
 
     def is_member(self, item):
         '''
         Check for existence of an item in filter
         '''
-        # TODO
+        for i in range(self.hash_count):
+            digest = mmh3.hash(item, i) % self.size
+            if self.bit_array[digest] == False: #if any bit is False then it is definitely not present
+                return False
         return True
  
     @classmethod
